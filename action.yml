@@ -1,0 +1,54 @@
+name: "LoopGrid Evidence Verify"
+description: "Verify a LoopGrid evidence bundle in CI and fail if integrity verification fails."
+author: "LoopGrid"
+branding:
+  icon: "shield"
+  color: "blue"
+
+inputs:
+  evidence:
+    description: "Path to the LoopGrid evidence bundle (.zip) to verify"
+    required: true
+  verifier:
+    description: "Optional path to the verifier script. Defaults to the verifier bundled with this action."
+    required: false
+    default: ""
+
+outputs:
+  result:
+    description: "VERIFIED when verification succeeds"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Verify LoopGrid evidence
+      id: verify
+      shell: bash
+      env:
+        INPUT_EVIDENCE: ${{ inputs.evidence }}
+        INPUT_VERIFIER: ${{ inputs.verifier }}
+      run: |
+        set -euo pipefail
+
+        if [ ! -f "$INPUT_EVIDENCE" ]; then
+          echo "::error::Evidence bundle not found: $INPUT_EVIDENCE"
+          exit 2
+        fi
+
+        if [ -n "$INPUT_VERIFIER" ]; then
+          VERIFIER="$INPUT_VERIFIER"
+        else
+          VERIFIER="$GITHUB_ACTION_PATH/verifier/loopgrid_verify.py"
+        fi
+
+        if [ ! -f "$VERIFIER" ]; then
+          echo "::error::LoopGrid verifier is missing: $VERIFIER"
+          echo "::error::Copy the canonical v0.8 verifier/loopgrid_verify.py into this repository before publishing."
+          exit 2
+        fi
+
+        echo "LoopGrid Evidence Verification"
+        echo "Bundle: $INPUT_EVIDENCE"
+        python3 "$VERIFIER" "$INPUT_EVIDENCE"
+
+        echo "result=VERIFIED" >> "$GITHUB_OUTPUT"

@@ -1,0 +1,15 @@
+name: Verify LoopGrid evidence
+
+on:
+  workflow_dispatch:
+
+jobs:
+  verify-loopgrid-evidence:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify LoopGrid evidence
+        uses: cybertechsoft/loopgrid-evidence-verify@v1
+        with:
+          evidence: ./evidence/evidence.zip
