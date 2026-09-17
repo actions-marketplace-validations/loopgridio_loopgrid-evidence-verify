@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Verify known-good evidence
         uses: ./
@@ -18,19 +18,21 @@ jobs:
           evidence: ./test-fixtures/valid-evidence.zip
           trusted-public-key: ./test-fixtures/trusted-public-key.pem
 
-      - name: Verify tampered evidence should fail
-        id: tampered
-        continue-on-error: true
-        uses: ./
-        with:
-          evidence: ./test-fixtures/tampered-evidence.zip
-          trusted-public-key: ./test-fixtures/trusted-public-key.pem
-
-      - name: Assert tampered evidence was rejected
+      - name: Confirm tampered evidence is rejected
         shell: bash
         run: |
-          if [ "${{ steps.tampered.outcome }}" != "failure" ]; then
+          set +e
+
+          python3 verifier/loopgrid_verify.py \
+            ./test-fixtures/tampered-evidence.zip \
+            --trusted-public-key ./test-fixtures/trusted-public-key.pem
+
+          code=$?
+          set -e
+
+          if [ "$code" -eq 0 ]; then
             echo "::error::Tampered evidence unexpectedly verified."
             exit 1
           fi
-          echo "Tampered fixture correctly rejected."
+
+          echo "Tampered fixture correctly rejected with exit code $code."
