@@ -1,0 +1,36 @@
+name: Test LoopGrid Evidence Verify
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify-fixtures:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify known-good evidence
+        uses: ./
+        with:
+          evidence: ./test-fixtures/valid-evidence.zip
+          trusted-public-key: ./test-fixtures/trusted-public-key.pem
+
+      - name: Verify tampered evidence should fail
+        id: tampered
+        continue-on-error: true
+        uses: ./
+        with:
+          evidence: ./test-fixtures/tampered-evidence.zip
+          trusted-public-key: ./test-fixtures/trusted-public-key.pem
+
+      - name: Assert tampered evidence was rejected
+        shell: bash
+        run: |
+          if [ "${{ steps.tampered.outcome }}" != "failure" ]; then
+            echo "::error::Tampered evidence unexpectedly verified."
+            exit 1
+          fi
+          echo "Tampered fixture correctly rejected."
