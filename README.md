@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Verify evidence
-        uses: loopgridio/loopgrid-evidence-verify@v1
+        uses: loopgridio/loopgrid-evidence-verify@v1.0.0
         with:
           evidence: ./evidence/evidence.zip
 ```
@@ -35,7 +35,7 @@ out-of-band trusted public key:
 
 ```yaml
 - name: Verify evidence with trusted signer
-  uses: loopgridio/loopgrid-evidence-verify@v1
+  uses: loopgridio/loopgrid-evidence-verify@v1.0.0
   with:
     evidence: ./evidence/evidence.zip
     trusted-public-key: ./keys/loopgrid-production-public-key.pem
