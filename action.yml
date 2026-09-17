@@ -1,32 +1,53 @@
 name: "LoopGrid Evidence Verify"
-description: "Verify a LoopGrid evidence bundle in CI and fail if integrity verification fails."
+description: "Verify LoopGrid evidence bundles in CI and fail on tampering, broken chains, or signer mismatch."
 author: "LoopGrid"
+
 branding:
   icon: "shield"
   color: "blue"
 
 inputs:
   evidence:
-    description: "Path to the LoopGrid evidence bundle (.zip) to verify"
+    description: "Path to the LoopGrid evidence bundle (.zip)"
     required: true
-  verifier:
-    description: "Optional path to the verifier script. Defaults to the verifier bundled with this action."
+
+  expected-key-id:
+    description: "Optional expected LoopGrid signer key id, for example ed25519:abc123..."
+    required: false
+    default: ""
+
+  trusted-public-key:
+    description: "Optional path to an out-of-band trusted PEM public key"
+    required: false
+    default: ""
+
+  tsa-ca-file:
+    description: "Optional trusted CA bundle for RFC3161 timestamp signer validation"
     required: false
     default: ""
 
 outputs:
   result:
     description: "VERIFIED when verification succeeds"
+    value: ${{ steps.verify.outputs.result }}
 
 runs:
   using: "composite"
   steps:
+    - name: Install verifier dependencies
+      shell: bash
+      run: |
+        set -euo pipefail
+        python3 -m pip install --disable-pip-version-check -q -r "$GITHUB_ACTION_PATH/requirements.txt"
+
     - name: Verify LoopGrid evidence
       id: verify
       shell: bash
       env:
         INPUT_EVIDENCE: ${{ inputs.evidence }}
-        INPUT_VERIFIER: ${{ inputs.verifier }}
+        INPUT_EXPECTED_KEY_ID: ${{ inputs.expected-key-id }}
+        INPUT_TRUSTED_PUBLIC_KEY: ${{ inputs.trusted-public-key }}
+        INPUT_TSA_CA_FILE: ${{ inputs.tsa-ca-file }}
       run: |
         set -euo pipefail
 
@@ -35,20 +56,28 @@ runs:
           exit 2
         fi
 
-        if [ -n "$INPUT_VERIFIER" ]; then
-          VERIFIER="$INPUT_VERIFIER"
-        else
-          VERIFIER="$GITHUB_ACTION_PATH/verifier/loopgrid_verify.py"
-        fi
+        VERIFIER="$GITHUB_ACTION_PATH/verifier/loopgrid_verify.py"
 
         if [ ! -f "$VERIFIER" ]; then
           echo "::error::LoopGrid verifier is missing: $VERIFIER"
-          echo "::error::Copy the canonical v0.8 verifier/loopgrid_verify.py into this repository before publishing."
           exit 2
         fi
 
+        args=("$INPUT_EVIDENCE")
+
+        if [ -n "$INPUT_EXPECTED_KEY_ID" ]; then
+          args+=(--expected-key-id "$INPUT_EXPECTED_KEY_ID")
+        fi
+
+        if [ -n "$INPUT_TRUSTED_PUBLIC_KEY" ]; then
+          args+=(--trusted-public-key "$INPUT_TRUSTED_PUBLIC_KEY")
+        fi
+
+        if [ -n "$INPUT_TSA_CA_FILE" ]; then
+          args+=(--tsa-ca-file "$INPUT_TSA_CA_FILE")
+        fi
+
         echo "LoopGrid Evidence Verification"
-        echo "Bundle: $INPUT_EVIDENCE"
-        python3 "$VERIFIER" "$INPUT_EVIDENCE"
+        python3 "$VERIFIER" "${args[@]}"
 
         echo "result=VERIFIED" >> "$GITHUB_OUTPUT"

@@ -1,30 +1,20 @@
-# GitHub Marketplace publication checklist
+# Marketplace publication checklist
 
-## Prerequisites
-- [ ] GitHub account has 2FA enabled.
-- [ ] Create a **separate public repository** named `loopgrid-evidence-verify`
-      (recommended).
-- [ ] Accept the GitHub Marketplace Developer Agreement when prompted.
-- [ ] No separate web hosting is required.
-- [ ] Copy the canonical LoopGrid v0.8 `verifier/loopgrid_verify.py` into this repo.
-- [ ] Add one known-valid real v0.8 evidence fixture.
-- [ ] Add one deliberately tampered fixture.
-- [ ] Confirm GitHub Actions tests pass.
-- [ ] Confirm the Marketplace name `LoopGrid Evidence Verify` is accepted as unique.
+1. Upload this repository content to `loopgridio/loopgrid-evidence-verify`.
+2. Confirm the `.github/workflows/test.yml` workflow appears under Actions.
+3. Wait for the test workflow to finish successfully.
+4. Confirm:
+   - known-good fixture verifies;
+   - tampered fixture is rejected;
+   - final assertion step passes.
+5. Open `action.yml` on GitHub.
+6. Use the Marketplace publication banner / draft a release.
+7. Enable **Publish this Action to the GitHub Marketplace**.
+8. Choose the closest available category (Security is a natural fit if offered).
+9. Create release tag `v1.0.0`.
+10. Publish the release.
+11. Create/update a floating `v1` tag pointing to the same commit.
+12. Test from a separate repository using:
+    `uses: loopgridio/loopgrid-evidence-verify@v1`
 
-## Publish
-- [ ] Commit and push all files.
-- [ ] Open `action.yml` on GitHub.
-- [ ] Use the Marketplace banner / **Draft a release**.
-- [ ] Check **Publish this Action to the GitHub Marketplace**.
-- [ ] Choose the closest available primary category (Security is a good fit if offered).
-- [ ] Create tag `v1.0.0`.
-- [ ] Publish the release.
-- [ ] Create/update floating major tag `v1` to point to the same commit.
-- [ ] Test from a second repository using:
-      `uses: cybertechsoft/loopgrid-evidence-verify@v1`
-
-## After publication
-- [ ] Add Marketplace link to the main LoopGrid README.
-- [ ] Add it to loopgrid.io Integrations/Docs.
-- [ ] Track external workflow runs / issues / stars, not just listing views.
+Do not publish if the test workflow is red.

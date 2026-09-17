@@ -1,32 +1,11 @@
 # LoopGrid Evidence Verify
 
-Verify a LoopGrid evidence bundle inside GitHub Actions.
+Verify a LoopGrid evidence bundle directly in GitHub Actions.
 
-> **Important before publishing:** this starter repository intentionally does **not**
-> include a reconstructed verifier. Copy the canonical `verifier/loopgrid_verify.py`
-> from the current LoopGrid v0.8 source release into `verifier/loopgrid_verify.py`.
-> This avoids accidentally publishing a Marketplace action that verifies a different
-> format from the real LoopGrid evidence bundle.
+The action runs LoopGrid's offline verifier and fails CI when evidence integrity
+verification fails.
 
-## What this action does
-
-The action runs the canonical LoopGrid offline verifier against an evidence bundle
-and lets the verifier's exit code control the CI result:
-
-- verification succeeds -> workflow passes
-- tamper/signature/chain verification fails -> workflow fails
-- missing bundle/verifier -> workflow fails with configuration error
-
-LoopGrid's current evidence bundle is documented as containing artifacts such as:
-
-- `manifest.json`
-- `decision.json`
-- `events.jsonl`
-- `chain-witness.jsonl`
-- `public-key.pem`
-- `report.html`
-
-## Usage
+## Quick start
 
 ```yaml
 name: Verify LoopGrid evidence
@@ -40,32 +19,62 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Verify LoopGrid evidence
-        uses: cybertechsoft/loopgrid-evidence-verify@v1
+      - name: Verify evidence
+        uses: loopgridio/loopgrid-evidence-verify@v1
         with:
           evidence: ./evidence/evidence.zip
 ```
 
-## Testing before Marketplace publication
+## Pin signer identity
 
-1. Copy the canonical LoopGrid verifier:
-   `verifier/loopgrid_verify.py`
-2. Put one known-good evidence bundle at:
-   `test-fixtures/valid-evidence.zip`
-3. Put one intentionally tampered bundle at:
-   `test-fixtures/tampered-evidence.zip`
-4. Update `.github/workflows/test.yml` if the paths differ.
-5. Push to GitHub and confirm:
-   - valid bundle job passes
-   - tampered bundle job fails *inside the verification step*
-6. Only after those tests pass, create a release and publish to GitHub Marketplace.
+An embedded public key can establish integrity under that key, but it does not by
+itself establish that the key belongs to the signer you intended to trust.
 
-## Security / trust boundary
+For stronger signer identity verification, pass either `expected-key-id` or an
+out-of-band trusted public key:
 
-This action verifies the evidence format implemented by the bundled canonical
-LoopGrid verifier. It does not prove that an AI decision was correct, lawful, or
-that every real-world event was captured.
+```yaml
+- name: Verify evidence with trusted signer
+  uses: loopgridio/loopgrid-evidence-verify@v1
+  with:
+    evidence: ./evidence/evidence.zip
+    trusted-public-key: ./keys/loopgrid-production-public-key.pem
+```
+
+## Inputs
+
+| Input | Required | Description |
+|---|---|---|
+| `evidence` | Yes | Path to a LoopGrid evidence ZIP |
+| `expected-key-id` | No | Expected signer key id |
+| `trusted-public-key` | No | Path to a trusted PEM public key |
+| `tsa-ca-file` | No | CA bundle for RFC3161 timestamp signer validation |
+
+## What verification checks
+
+Depending on what is present in the evidence bundle, the canonical LoopGrid
+verifier checks cryptographic signatures, content commitments, hash-chain
+continuity, signer identity metadata, disclosures, checkpoints, and optional
+RFC3161 timestamp evidence.
+
+## Test fixtures
+
+This repository includes two **synthetic CI fixtures** generated only to test the
+public verifier:
+
+- `test-fixtures/valid-evidence.zip` — expected to verify successfully
+- `test-fixtures/tampered-evidence.zip` — contains a modified protected payload and
+  is expected to fail verification
+- `test-fixtures/trusted-public-key.pem` — public key for the synthetic fixture
+
+These are not customer data and are not production evidence samples.
+
+## Trust boundary
+
+Successful verification proves the integrity/provenance properties implemented
+by the verifier for the evidence supplied. It does not prove that an AI decision
+was correct, lawful, or that every real-world event was captured.
 
 ## License
 
-Apache-2.0. See `LICENSE`.
+Apache-2.0.
